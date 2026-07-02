@@ -18,7 +18,7 @@ export function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
         <Link href="/" className="flex items-center gap-3 text-lg font-bold text-marine">
           <Image
-            src="/logo-litto-watch.png"
+            src="/logo.jpeg"
             alt="Litto-Watch"
             width={44}
             height={44}
