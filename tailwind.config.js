@@ -8,8 +8,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        marine: '#0f766e',
-        algae: '#16a34a',
+        marine: '#0f4c5c',
+        sand: '#e9d8a6',
+        algae: '#2a9d8f',
+        foam: '#f8fafc',
       },
     },
   },
