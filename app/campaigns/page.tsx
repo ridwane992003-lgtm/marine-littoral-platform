@@ -1,51 +1,40 @@
-export default function CampaignsPage() {
-  const campaigns = [
-    { name: "Campagne été 2024", location: "Côte nord", status: "En cours", progress: 65 },
-    { name: "Étude biodiversité", location: "Baie côtière", status: "Programmée", progress: 20 },
-    { name: "Suivi NDVI", location: "Zone A", status: "Complétée", progress: 100 },
-    { name: "Inventaire espèces", location: "Littoral sud", status: "En cours", progress: 45 },
-  ];
+import Link from "next/link";
+import Image from "next/image";
 
+const links = [
+  ["/", "Accueil"],
+  ["/dashboard", "Dashboard"],
+  ["/species", "Espèces"],
+  ["/environment", "Facteurs"],
+  ["/remote-sensing", "Télédétection"],
+  ["/prediction", "Prédiction"],
+  ["/campaigns", "Campagnes"],
+  ["/auth/login", "Connexion"]
+];
+
+export function Navbar() {
   return (
-    <div className="space-y-8">
-      <section>
-        <h1 className="text-3xl font-bold text-slate-900">Campagnes terrain</h1>
-        <p className="mt-2 text-slate-600">Gestion des missions d'observation et collecte de données</p>
-      </section>
+    <header className="border-b border-slate-200 bg-white">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+        <Link href="/" className="flex items-center gap-3 text-lg font-bold text-marine">
+          <Image
+            src="/logo-litto-watch.jpeg"
+            alt="Litto-Watch"
+            width={44}
+            height={44}
+            className="rounded-full object-cover"
+          />
+          <span>Litto-Watch</span>
+        </Link>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {campaigns.map((campaign) => (
-          <div key={campaign.name} className="rounded-lg border border-slate-200 p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
-                <p className="text-sm text-slate-600">{campaign.location}</p>
-              </div>
-              <span className={`rounded-full px-3 py-1 text-sm font-medium ${
-                campaign.status === "En cours"
-                  ? "bg-blue-100 text-blue-800"
-                  : campaign.status === "Complétée"
-                  ? "bg-green-100 text-green-800"
-                  : "bg-yellow-100 text-yellow-800"
-              }`}>
-                {campaign.status}
-              </span>
-            </div>
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-600">Progression</span>
-                <span className="font-medium text-slate-900">{campaign.progress}%</span>
-              </div>
-              <div className="mt-2 h-2 bg-slate-200 rounded-full">
-                <div
-                  className="h-full bg-marine rounded-full"
-                  style={{ width: `${campaign.progress}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
+        <nav className="flex flex-wrap gap-4 text-sm">
+          {links.map(([href, label]) => (
+            <Link key={href} href={href} className="text-slate-700 hover:text-marine">
+              {label}
+            </Link>
+          ))}
+        </nav>
       </div>
-    </div>
+    </header>
   );
 }
