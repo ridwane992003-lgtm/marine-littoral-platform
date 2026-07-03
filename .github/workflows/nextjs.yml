@@ -1,11 +1,9 @@
-# Workflow GitHub Actions pour construire et déployer un site Next.js sur GitHub Pages
-
 name: Deploy Next.js site to Pages
 
 on:
   push:
-    branches: ["main"]   # Déclenche sur les pushes vers la branche principale
-  workflow_dispatch:      # Permet de lancer manuellement depuis l’onglet Actions
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -45,21 +43,16 @@ jobs:
           node-version: "20"
           cache: ${{ steps.detect-package-manager.outputs.manager }}
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          static_site_generator: next
-
-      - name: Restore Next.js cache
-        uses: actions/cache@v4
-        with:
-          path: .next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
-
       - name: Install dependencies
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+
+      # Étape de linting
+      - name: Run ESLint
+        run: ${{ steps.detect-package-manager.outputs.runner }} next lint
+
+      # Étape de vérification TypeScript
+      - name: Run TypeScript check
+        run: ${{ steps.detect-package-manager.outputs.runner }} tsc --noEmit
 
       - name: Build and Export Next.js site
         run: |
