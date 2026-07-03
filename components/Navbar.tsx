@@ -7,7 +7,7 @@ const links: Array<[Route, string]> = [
   ["/dashboard", "Dashboard"],
   ["/species", "Espèces"],
   ["/environment", "Facteurs"],
-  ["/remote-sensing", "Télédétection"],
+  ["/remote-sensin", "Télédétection"],
   ["/prediction", "Prédiction"],
   ["/campaigns", "Campagnes"],
   ["/auth/login", "Connexion"],
