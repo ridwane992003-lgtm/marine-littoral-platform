@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
-const links = [
+const links: Array<[string, string]> = [
   ["/", "Accueil"],
   ["/dashboard", "Dashboard"],
   ["/species", "Espèces"],
