@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Route } from "next";
 
-const links: Array<[string, string]> = [
+const links: Array<[Route, string]> = [
   ["/", "Accueil"],
   ["/dashboard", "Dashboard"],
   ["/species", "Espèces"],
@@ -9,14 +10,17 @@ const links: Array<[string, string]> = [
   ["/remote-sensing", "Télédétection"],
   ["/prediction", "Prédiction"],
   ["/campaigns", "Campagnes"],
-  ["/auth/login", "Connexion"]
+  ["/auth/login", "Connexion"],
 ];
 
 export function Navbar() {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-        <Link href="/" className="flex items-center gap-3 text-lg font-bold text-marine">
+        <Link
+          href="/"
+          className="flex items-center gap-3 text-lg font-bold text-marine"
+        >
           <Image
             src="/logo.jpeg"
             alt="Litto-Watch"
@@ -29,7 +33,11 @@ export function Navbar() {
 
         <nav className="flex flex-wrap gap-4 text-sm">
           {links.map(([href, label]) => (
-            <Link key={href} href={href} className="text-slate-700 hover:text-marine">
+            <Link
+              key={href}
+              href={href}
+              className="text-slate-700 hover:text-marine"
+            >
               {label}
             </Link>
           ))}
