@@ -8,6 +8,7 @@
   "plugins": ["@typescript-eslint", "react"],
   "rules": {
     "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
     "react/react-in-jsx-scope": "off"
   }
 }
