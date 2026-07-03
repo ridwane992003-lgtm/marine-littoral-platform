@@ -1,33 +1,47 @@
 export default function PredictionPage() {
+  const predictions = [
+    { location: "Mare A", status: "Eau", confidence: "92%" },
+    { location: "Mare B", status: "Asséchée", confidence: "87%" },
+    { location: "Mare C", status: "Eau", confidence: "95%" },
+    { location: "Mare D", status: "En cours de dessèchement", confidence: "78%" },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-marine">Prédiction des mares</h1>
-        <p className="mt-2 text-slate-600">
-          Squelette du module de modélisation pour l'état et l'évolution des mares.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <section>
+        <h1 className="text-3xl font-bold text-slate-900">Prédiction des mares</h1>
+        <p className="mt-2 text-slate-600">Modèles prédictifs de l'état des mares littorales</p>
+      </section>
 
-      <div className="card">
-        <h2 className="text-xl font-semibold">Variables candidates</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 text-slate-700">
-          <div className="rounded-xl bg-slate-50 p-4">NDVI</div>
-          <div className="rounded-xl bg-slate-50 p-4">NDWI</div>
-          <div className="rounded-xl bg-slate-50 p-4">Pluviométrie</div>
-          <div className="rounded-xl bg-slate-50 p-4">Température</div>
-          <div className="rounded-xl bg-slate-50 p-4">Salinité</div>
-          <div className="rounded-xl bg-slate-50 p-4">Altitude / MNT</div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h2 className="text-xl font-semibold">Sorties prévues</h2>
-        <ul className="mt-4 list-disc pl-6 space-y-2 text-slate-700">
-          <li>Présence/absence d'eau</li>
-          <li>Risque d'assèchement</li>
-          <li>Classification mare temporaire/permanente</li>
-          <li>Carte de probabilité</li>
-        </ul>
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="w-full">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700">Localisation</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700">Statut prédit</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-700">Confiance</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {predictions.map((pred) => (
+              <tr key={pred.location} className="hover:bg-slate-50">
+                <td className="px-6 py-4 text-slate-900">{pred.location}</td>
+                <td className="px-6 py-4 text-slate-600">{pred.status}</td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-20 bg-slate-200 rounded-full">
+                      <div
+                        className="h-full bg-marine rounded-full"
+                        style={{ width: pred.confidence }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{pred.confidence}</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -1,87 +1,34 @@
-'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-
 export default function LoginPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Erreur lors de la connexion');
-      }
-
-      router.push('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="mx-auto max-w-md card">
-      <h1 className="text-2xl font-bold text-marine">Connexion</h1>
+    <div className="space-y-8">
+      <section className="rounded-3xl bg-gradient-to-r from-marine to-algae p-10 text-white">
+        <h1 className="text-3xl font-bold">Connexion</h1>
+        <p className="mt-2 text-cyan-50">Connectez-vous à votre compte Litto-Watch</p>
+      </section>
 
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-        {error && <div className="text-red-500 text-sm">{error}</div>}
-        
-        <input
-          id="email"
-          name="email"
-          className="input"
-          type="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-        <input
-          id="password"
-          name="password"
-          className="input"
-          type="password"
-          placeholder="Mot de passe"
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
-        <button
-          type="submit"
-          className="btn w-full justify-center"
-          disabled={loading}
-        >
-          {loading ? 'Connexion en cours...' : 'Se connecter'}
-        </button>
-      </form>
+      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 p-8">
+        <form className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Email</label>
+            <input
+              type="email"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-2"
+              placeholder="vous@exemple.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Mot de passe</label>
+            <input
+              type="password"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-4 py-2"
+              placeholder="••••••••"
+            />
+          </div>
+          <button className="w-full rounded-lg bg-marine py-2 font-medium text-white hover:bg-marine/90">
+            Se connecter
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
