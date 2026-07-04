@@ -7,7 +7,7 @@ const links: Array<[Route, string]> = [
   ["/dashboard", "Dashboard"],
   ["/species", "Espèces"],
   ["/environment", "Facteurs"],
-  ["/remote-sensin", "Télédétection"],
+  ["/remote-sensing" as Route, "Télédétection"], // 💡 Correction ici : correction de la faute de frappe "/remote-sensin" et forçage du type Route si nécessaire
   ["/prediction", "Prédiction"],
   ["/campaigns", "Campagnes"],
   ["/auth/login", "Connexion"],
