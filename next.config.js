@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
-  trailingSlash: true, // 💡 Active les URLs propres pour éviter les erreurs 404 sur les boutons
+  trailingSlash: true, // 💡 Obligatoire pour GitHub Pages pour lier les sous-pages comme /remote-sensing/
   eslint: {
     ignoreDuringBuilds: true,
   },
