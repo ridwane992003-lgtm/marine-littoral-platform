@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+// @ts-ignore
 import ee from "@google/earthengine";
 
 // Initialisation de Google Earth Engine de manière asynchrone
@@ -35,38 +36,34 @@ export async function POST(request: Request) {
       collectionId = "COPERNICUS/S2_SR_HARMONIZED"; // Sentinel-2
     }
 
-    // Filtrage spatial et temporel (exemple basé sur une collection globale, filtrée sur l'année choisie)
+    // Filtrage spatial et temporel
     let imageCollection = ee.ImageCollection(collectionId)
       .filterDate(`${dateRange}-01-01`, `${dateRange}-12-31`)
-      .sort("CLOUD_COVER") // Trier par couverture nuageuse minimale
-      ;
+      .sort("CLOUD_COVER");
 
     const testImage = imageCollection.first();
 
     // 3. Calcul de l'indice spectral matriciel
     let computedRaster;
     if (indexType === "ndvi") {
-      // Landsat 8: B5 (NIR), B4 (Red) | Sentinel 2: B8 (NIR), B4 (Red)
       const nirBand = satellite === "landsat8" ? "B5" : "B8";
       computedRaster = testImage.normalizedDifference([nirBand, "B4"]);
     } else if (indexType === "ndwi") {
-      // NDWI (McFeeters): Green et NIR -> Landsat 8: B3, B5 | Sentinel 2: B3, B8
       const nirBand = satellite === "landsat8" ? "B5" : "B8";
       computedRaster = testImage.normalizedDifference(["B3", nirBand]);
     } else {
-      // MNDWI (Xu): Green et SWIR -> Landsat 8: B3, B6 | Sentinel 2: B3, B11
       const swirBand = satellite === "landsat8" ? "B6" : "B11";
       computedRaster = testImage.normalizedDifference(["B3", swirBand]);
     }
 
     // 4. Génération de l'URL de téléchargement direct GeoTIFF par Google
     const downloadUrl = await new Promise<string>((resolve, reject) => {
-      // Définition d'une région d'intérêt par défaut (Bounding Box à adapter selon les coordonnées de votre zone de test)
+      // Zone d'intérêt par défaut (Bounding Box autour du Lac Rose, Sénégal)
       const defaultRegion = ee.Geometry.Rectangle([-17.6, 14.5, -17.2, 14.9]);
 
       computedRaster.getDownloadURL({
         name: `${indexType}_${satellite}_export`,
-        scale: satellite === "landsat8" ? 30 : 10, // Résolution spatiale du capteur (30m ou 10m)
+        scale: satellite === "landsat8" ? 30 : 10, // Résolution spatiale (30m ou 10m)
         filePerBand: false,
         format: "GEO_TIFF",
         region: defaultRegion
