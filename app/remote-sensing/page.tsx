@@ -5,66 +5,133 @@ import { useState } from "react";
 export default function RemoteSensingPage() {
   const [satellite, setSatellite] = useState("landsat8");
   const [indexType, setIndexType] = useState("ndvi");
+  const [dateRange, setDateRange] = useState("2026");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCalculated, setIsCalculated] = useState(false);
+  const [geeStatus, setGeeStatus] = useState("");
+
+  const handleGEECalculate = async () => {
+    setIsLoading(true);
+    setIsCalculated(false);
+    setGeeStatus("Connexion aux serveurs Google Earth Engine...");
+
+    // Simulation du pipeline GEE
+    setTimeout(() => {
+      setGeeStatus("Requête envoyée. Filtrage de la couverture nuageuse...");
+      setTimeout(() => {
+        setGeeStatus("Calcul matriciel de l'indice sur les serveurs distants...");
+        setTimeout(() => {
+          setIsLoading(false);
+          setIsCalculated(true);
+          setGeeStatus(`✅ Couche générée ! L'indice ${indexType.toUpperCase()} (${satellite.toUpperCase()}) pour l'année ${dateRange} est prêt.`);
+        }, 1200);
+      }, 1000);
+    }, 1000);
+  };
+
+  const handleDownload = () => {
+    // Plus tard, ceci pointera vers l'URL de téléchargement générée par GEE
+    alert(`Téléchargement du fichier Raster (${indexType.toUpperCase()}_${satellite}_${dateRange}.tif) démarré !`);
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">
-      {/* En-tête */}
       <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-3xl font-bold text-slate-900">Analyse par Télédétection</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Analyse par Télédétection (Cloud Compute)</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Outils de traitement d'imagerie satellitaire et d'analyse des indices environnementaux littoraux.
+          Calcul d'indices spectraux environnementaux via l'API Google Earth Engine.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Panneau de configuration des variables */}
+        {/* Configuration */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 h-fit">
-          <h2 className="text-lg font-semibold text-slate-800">Configuration du traitement</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Paramètres GEE</h2>
           
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Source de données</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Capteur Spatial</label>
             <select 
               value={satellite} 
               onChange={(e) => setSatellite(e.target.value)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-sky-700 focus:outline-none text-sm"
             >
-              <option value="landsat8">Landsat 8 OLI</option>
-              <option value="sentinel2">Sentinel-2 MSI</option>
+              <option value="landsat8">Landsat 8 OLI (Bandes 1-11)</option>
+              <option value="sentinel2">Sentinel-2 MSI (Haute Résolution)</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Indice Spectral</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Indice à générer</label>
             <select 
               value={indexType} 
               onChange={(e) => setIndexType(e.target.value)}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-sky-700 focus:outline-none text-sm"
             >
               <option value="ndvi">NDVI (Indice de Végétation)</option>
-              <option value="ndwi">NDWI (Indice d'Eau)</option>
-              <option value="mndwi">MNDWI (Indice d'Eau Modifié)</option>
+              <option value="ndwi">NDWI (Indice d'Eau McFeeters)</option>
+              <option value="mndwi">MNDWI (Indice d'Eau Modifié Xu)</option>
             </select>
           </div>
 
-          <button className="w-full bg-sky-700 text-white py-2 rounded-md font-semibold text-sm hover:bg-sky-800 transition-colors pt-2">
-            Calculer l'indice spectral
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Période d'analyse</label>
+            <select 
+              value={dateRange} 
+              onChange={(e) => setDateRange(e.target.value)}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-sky-700 focus:outline-none text-sm"
+            >
+              <option value="2026">Données récentes (2026)</option>
+              <option value="2025">Archives (2025)</option>
+              <option value="2024">Archives (2024)</option>
+            </select>
+          </div>
+
+          <button 
+            type="button"
+            disabled={isLoading}
+            onClick={handleGEECalculate}
+            className="w-full bg-sky-700 text-white py-2 rounded-md font-semibold text-sm hover:bg-sky-800 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? "Traitement Cloud..." : "Calculer via Google Earth Engine"}
           </button>
         </div>
 
-        {/* Zone de visualisation de l'imagerie */}
+        {/* Console de sortie & Téléchargement */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[450px]">
           <div>
-            <h2 className="text-lg font-semibold text-slate-800 mb-2">Visualisation des bandes</h2>
-            <p className="text-xs text-slate-400">Prêt pour l'affichage matriciel (Raster) ou la superposition des signatures spectrales.</p>
+            <h2 className="text-lg font-semibold text-slate-800 mb-2">Statut du pipeline géospatial</h2>
+            <p className="text-xs text-slate-400">Suivi en temps réel de l'exécution des algorithmes sur l'infrastructure Google Cloud.</p>
           </div>
           
-          <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-dashed border-slate-300 p-8 my-4">
-            <svg className="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="mt-2 text-sm font-medium text-slate-900">Aucune imagerie chargée</p>
-            <p className="mt-1 text-xs text-slate-500">Sélectionnez vos critères à gauche pour lancer l'analyse de la zone d'étude.</p>
+          <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 text-slate-200 font-mono rounded-lg p-6 my-4 shadow-inner text-xs space-y-2 overflow-y-auto">
+            {geeStatus ? (
+              <div className="w-full space-y-1 text-left">
+                <p className="text-sky-400 font-bold">[GEE-API-LOGS]:</p>
+                <p className="pl-2 text-green-400 animate-pulse">{geeStatus}</p>
+              </div>
+            ) : (
+              <div className="text-center text-slate-500">
+                <p>&gt;_ En attente d'une instruction...</p>
+                <p className="text-[10px] mt-1">Configurez le capteur à gauche et lancez le traitement.</p>
+              </div>
+            )}
           </div>
+
+          {/* Bouton de téléchargement conditionnel */}
+          <div className="flex justify-end pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={!isCalculated}
+              onClick={handleDownload}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md font-semibold text-sm hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600 transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Télécharger le fichier traité (.TIF)
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
