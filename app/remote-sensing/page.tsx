@@ -9,29 +9,45 @@ export default function RemoteSensingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculated, setIsCalculated] = useState(false);
   const [geeStatus, setGeeStatus] = useState("");
+  const [downloadUrl, setDownloadUrl] = useState("");
 
   const handleGEECalculate = async () => {
     setIsLoading(true);
     setIsCalculated(false);
-    setGeeStatus("Connexion aux serveurs Google Earth Engine...");
+    setDownloadUrl("");
+    setGeeStatus("Envoi des paramètres aux serveurs de calcul...");
 
-    // Simulation du pipeline GEE
-    setTimeout(() => {
-      setGeeStatus("Requête envoyée. Filtrage de la couverture nuageuse...");
-      setTimeout(() => {
-        setGeeStatus("Calcul matriciel de l'indice sur les serveurs distants...");
-        setTimeout(() => {
-          setIsLoading(false);
-          setIsCalculated(true);
-          setGeeStatus(`✅ Couche générée ! L'indice ${indexType.toUpperCase()} (${satellite.toUpperCase()}) pour l'année ${dateRange} est prêt.`);
-        }, 1200);
-      }, 1000);
-    }, 1000);
+    try {
+      const response = await fetch("/api/gee", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ satellite, indexType, dateRange }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        setDownloadUrl(data.url);
+        setIsCalculated(true);
+        setGeeStatus(`✅ Calcul matriciel terminé ! L'indice ${indexType.toUpperCase()} est prêt pour le téléchargement direct.`);
+      } else {
+        setGeeStatus(`❌ Erreur Google Cloud : ${data.error || "Impossible de générer le fichier raster"}`);
+      }
+    } catch (error) {
+      setGeeStatus("❌ Erreur réseau lors de la communication avec le pipeline.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDownload = () => {
-    // Plus tard, ceci pointera vers l'URL de téléchargement générée par GEE
-    alert(`Téléchargement du fichier Raster (${indexType.toUpperCase()}_${satellite}_${dateRange}.tif) démarré !`);
+    if (!downloadUrl) return;
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `${indexType.toUpperCase()}_${satellite}_${dateRange}.tif`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -117,7 +133,7 @@ export default function RemoteSensingPage() {
             )}
           </div>
 
-          {/* Bouton de téléchargement conditionnel */}
+          {/* Bouton de téléchargement */}
           <div className="flex justify-end pt-2 border-t border-slate-100">
             <button
               type="button"
