@@ -1,71 +1,111 @@
 "use client";
 
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polygon, useMapEvents } from "react-leaflet";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 
-// Composant interne pour capturer les coordonnées de la vue actuelle
-function MapBBoxExporter({ onBBoxChange }: { onBBoxChange: (bbox: string) => void }) {
-  const map = useMap();
-  
-  const handleCapture = () => {
-    const bounds = map.getBounds();
-    const west = bounds.getWest().toFixed(4);
-    const south = bounds.getSouth().toFixed(4);
-    const east = bounds.getEast().toFixed(4);
-    const north = bounds.getNorth().toFixed(4);
-    
-    // Format standard : Ouest, Sud, Est, Nord (Bounding Box)
-    const bboxString = `${west},${south},${east},${north}`;
-    onBBoxChange(bboxString);
-  };
+// Composant interne pour gérer les clics et le dessin du polygone
+function MapDrawingTools({ 
+  points, 
+  setPoints 
+}: { 
+  points: [number, number][]; 
+  setPoints: React.Dispatch<React.SetStateAction<[number, number][]>> 
+}) {
+  useMapEvents({
+    click(e) {
+      // Ajoute le point cliqué (Latitude, Longitude) à la liste
+      setPoints((prev) => [...prev, [e.latlng.lat, e.latlng.lng]]);
+    },
+  });
 
-  return (
-    <div className="absolute bottom-5 left-5 z-[400]">
-      <button
-        type="button"
-        onClick={handleCapture}
-        className="bg-sky-700 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-lg hover:bg-sky-800 transition-colors"
-      >
-        🎯 Sélectionner cette zone pour la Télédétection
-      </button>
-    </div>
-  );
+  return null;
 }
 
 export default function InteractiveMap() {
   const router = useRouter();
-  const [selectedBBox, setSelectedBBox] = useState("");
-  const defaultPosition: [number, number] = [14.76, -17.22]; // Centré par défaut sur la zone Niague / Lac Rose
+  const [drawnPoints, setDrawnPoints] = useState<[number, number][]>([]);
+  const defaultPosition: [number, number] = [14.76, -17.22]; // Centré sur le secteur Niague / Lac Rose
 
+  // Réinitialiser le dessin
+  const handleClear = () => {
+    setDrawnPoints([]);
+  };
+
+  // Envoyer la géométrie vers la page de Télédétection
   const handleAnalyzeRedirect = () => {
-    if (selectedBBox) {
-      // Redirection automatique vers la page télédétection avec les coordonnées en paramètre URL
-      router.push(`/remote-sensing?bbox=${selectedBBox}`);
-    }
+    if (drawnPoints.length < 3) return;
+
+    // Pour Digital Earth Africa (STAC), on convertit en format standard GeoJSON [Lng, Lat]
+    // Et on ferme le polygone en répétant le premier point à la fin
+    const structuredCoords = drawnPoints.map((pt) => [pt[1], pt[0]]);
+    structuredCoords.push(structuredCoords[0]); // Fermeture de la boucle
+
+    // Transformation en chaîne de caractères sécurisée pour l'URL
+    const coordsString = encodeURIComponent(JSON.stringify(structuredCoords));
+    
+    // Redirection vers la page avec le paramètre de polygone complet
+    router.push(`/remote-sensing?poly=${coordsString}`);
   };
 
   return (
-    <div className="w-full h-[500px] rounded-xl overflow-hidden shadow-inner border border-slate-200 relative">
+    <div className="w-full h-[550px] rounded-xl overflow-hidden shadow-inner border border-slate-200 relative">
+      {/* Barre d'instructions supérieure */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[400] bg-slate-900/90 backdrop-blur text-white px-4 py-2 rounded-full text-xs font-semibold shadow-md pointer-events-none text-center min-w-[300px]">
+        {drawnPoints.length === 0 && "🖱️ Cliquez sur la carte pour commencer à dessiner votre polygone"}
+        {drawnPoints.length === 1 && "📍 Cliquez pour ajouter le deuxième point"}
+        {drawnPoints.length === 2 && "📐 Cliquez pour ajouter un troisième point et former une surface"}
+        {drawnPoints.length >= 3 && `✅ Surface définie (${drawnPoints.length} sommets)`}
+      </div>
+
       <MapContainer center={defaultPosition} zoom={12} style={{ height: "100%", width: "100%" }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapBBoxExporter onBBoxChange={(bbox) => setSelectedBBox(bbox)} />
+        
+        {/* Active l'écouteur de clics pour le dessin */}
+        <MapDrawingTools points={drawnPoints} setPoints={setDrawnPoints} />
+
+        {/* Affiche le polygone en cours de dessin sur la carte */}
+        {drawnPoints.length > 0 && (
+          <Polygon 
+            positions={drawnPoints} 
+            pathOptions={{ 
+              color: "#0369a1", 
+              fillColor: "#0ea5e9", 
+              fillOpacity: 0.3,
+              weight: 3 
+            }} 
+          />
+        )}
       </MapContainer>
 
-      {selectedBBox && (
-        <div className="absolute top-5 right-5 z-[400] bg-white/95 backdrop-blur p-3 rounded-lg shadow-md border border-slate-200 max-w-xs animate-fadeIn">
-          <p className="text-[11px] font-mono text-slate-600 truncate">BBox détectée : {selectedBBox}</p>
-          <button
-            onClick={handleAnalyzeRedirect}
-            className="mt-2 w-full bg-emerald-600 text-white py-1.5 rounded text-xs font-bold hover:bg-emerald-700 transition-colors"
-          >
-            Envoyer les coordonnées au traitement →
-          </button>
+      {/* Panneau de contrôle flottant à droite */}
+      {drawnPoints.length >= 3 && (
+        <div className="absolute bottom-5 right-5 z-[400] bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-slate-200 w-64 animate-fadeIn space-y-3">
+          <div>
+            <h4 className="text-xs font-bold text-slate-800">Zone d'Étude Personnalisée</h4>
+            <p className="text-[10px] text-slate-500 mt-0.5">Votre polygone est correctement tracé et prêt à être envoyé.</p>
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleClear}
+              className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-md text-xs font-medium hover:bg-slate-200 transition-colors"
+            >
+              Effacer
+            </button>
+            <button
+              type="button"
+              onClick={handleAnalyzeRedirect}
+              className="flex-[2] bg-sky-700 text-white py-2 rounded-md text-xs font-bold hover:bg-sky-800 shadow-md transition-colors text-center"
+            >
+              Analyser la zone →
+            </button>
+          </div>
         </div>
       )}
     </div>

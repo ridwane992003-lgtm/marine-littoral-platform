@@ -3,15 +3,13 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-// 1. On isole le contenu qui utilise useSearchParams
-function RemoteSensingContent() {
+function DEAfricaContent() {
   const searchParams = useSearchParams();
-  const [satellite, setSatellite] = useState("landsat8");
   const [indexType, setIndexType] = useState("ndvi");
-  const [dateRange, setDateRange] = useState("2026");
+  const [year, setYear] = useState("2025");
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculated, setIsCalculated] = useState(false);
-  const [geeStatus, setGeeStatus] = useState("");
+  const [status, setStatus] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [coords, setCoords] = useState<string | null>(null);
 
@@ -19,26 +17,26 @@ function RemoteSensingContent() {
     const bbox = searchParams.get("bbox");
     if (bbox) {
       setCoords(bbox);
-      setGeeStatus(`📍 Coordonnées géographiques détectées : [${bbox}]`);
+      setStatus(`📍 Zone utilisateur chargée avec succès ! Coordonnées : [${bbox}]`);
     }
   }, [searchParams]);
 
-  const handleGEECalculate = async () => {
+  const handleDEAfricaSearch = async () => {
     if (!coords) {
-      setGeeStatus("⚠️ Erreur : Veuillez d'abord sélectionner une zone sur la carte du Dashboard.");
+      setStatus("⚠️ Erreur : Veuillez d'abord sélectionner une zone sur la carte du Dashboard.");
       return;
     }
 
     setIsLoading(true);
     setIsCalculated(false);
     setDownloadUrl("");
-    setGeeStatus("Envoi des coordonnées personnalisées aux serveurs Google Earth Engine...");
+    setStatus(`Extraction instantanée des données Digital Earth Africa pour l'année ${year}...`);
 
     try {
-      const response = await fetch("/api/gee", {
+      const response = await fetch("/api/deafrica", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ satellite, indexType, dateRange, bbox: coords }),
+        body: JSON.stringify({ indexType, year, bbox: coords }),
       });
 
       const data = await response.json();
@@ -46,93 +44,77 @@ function RemoteSensingContent() {
       if (data.success && data.url) {
         setDownloadUrl(data.url);
         setIsCalculated(true);
-        setGeeStatus(`✅ Traitement matriciel optimisé terminé avec succès ! Le GeoTIFF est prêt.`);
+        setStatus(`✅ Image historique trouvée ! Le fichier GeoTIFF de votre zone est prêt pour le téléchargement.`);
       } else {
-        setGeeStatus(`❌ Erreur Google Cloud : ${data.error || "Impossible de générer le fichier raster"}`);
+        setStatus(`❌ Limite : ${data.error || "Aucune image sur cette zone"}`);
       }
     } catch (error) {
-      setGeeStatus("❌ Erreur réseau lors de la communication avec le pipeline.");
+      setStatus("❌ Erreur de communication avec le catalogue STAC.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDownload = () => {
-    if (!downloadUrl) return;
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `${indexType.toUpperCase()}_${satellite}_CustomZone.tif`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      {/* Configuration */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 h-fit">
-        <h2 className="text-lg font-semibold text-slate-800">Paramètres GEE</h2>
-        
+        <h2 className="text-lg font-semibold text-slate-800">Analyse Temporelle Personnalisée</h2>
+
         {coords ? (
-          <div className="bg-green-50 p-3 rounded-md border border-green-200 text-[11px] text-green-800 font-mono">
-            ✔️ Zone active chargée avec succès.
+          <div className="bg-green-50 p-3 rounded-md border border-green-200 text-[11px] text-green-800 font-mono break-all">
+            ✔️ Coordonnées de votre zone actives.
           </div>
         ) : (
           <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-xs text-amber-800">
-            ⚠️ Aucune zone sélectionnée. Retournez sur la carte du Dashboard pour choisir vos coordonnées.
+            ⚠️ Aucune coordonnée reçue. Allez sur la carte du Dashboard pour capturer votre propre zone d'étude.
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Capteur Spatial</label>
-          <select value={satellite} onChange={(e) => setSatellite(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-sky-700 text-sm">
-            <option value="landsat8">Landsat 8 OLI</option>
-            <option value="sentinel2">Sentinel-2 MSI</option>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Choisir l'année de l'archive</label>
+          <select value={year} onChange={(e) => setYear(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-sky-700 bg-sky-50 font-bold">
+            <option value="2025">2025 (Données récentes)</option>
+            <option value="2020">2020 (Il y a 6 ans)</option>
+            <option value="2015">2015 (Il y a 11 ans)</option>
+            <option value="2010">2010 (Il y a 16 ans)</option>
+            <option value="2000">2000 (Il y a 26 ans)</option>
+            <option value="1990">1990 (Il y a 36 ans)</option>
+            <option value="1985">1985 (Archives initiales d'il y a 41 ans)</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Indice à générer</label>
-          <select value={indexType} onChange={(e) => setIndexType(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-sky-700 text-sm">
-            <option value="ndvi">NDVI (Végétation)</option>
-            <option value="ndwi">NDWI (Eau McFeeters)</option>
-            <option value="mndwi">MNDWI (Eau Modifié Xu)</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Période d'analyse</label>
-          <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-sky-700 text-sm">
-            <option value="2026">Données récentes (2026)</option>
-            <option value="2025">Archives (2025)</option>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Indice produit</label>
+          <select value={indexType} onChange={(e) => setIndexType(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-sky-700">
+            <option value="ndvi">NDVI (Couverture Végétale)</option>
+            <option value="visual">Image brute (Couleurs Réelles RGB)</option>
           </select>
         </div>
 
         <button 
           type="button" 
           disabled={isLoading || !coords} 
-          onClick={handleGEECalculate} 
+          onClick={handleDEAfricaSearch} 
           className="w-full bg-sky-700 text-white py-2 rounded-md font-semibold text-sm hover:bg-sky-800 transition-colors disabled:opacity-40"
         >
-          {isLoading ? "Traitement GEE en cours..." : "Calculer sur ma zone"}
+          {isLoading ? "Recherche en cours..." : "Extraire les données de ma zone"}
         </button>
       </div>
 
-      {/* Console de sortie & Téléchargement */}
       <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[450px]">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800 mb-2">Logs d'exécution Cloud</h2>
-          <p className="text-xs text-slate-400">Suivi du traitement d'extraction pixellaire.</p>
+          <h2 className="text-lg font-semibold text-slate-800 mb-2">Console Digital Earth Africa</h2>
+          <p className="text-xs text-slate-400">Accès direct aux infrastructures AWS Open Data Cube.</p>
         </div>
         
-        <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 text-slate-200 font-mono rounded-lg p-6 my-4 shadow-inner text-xs space-y-2">
-          {geeStatus ? (
+        <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 text-slate-200 font-mono rounded-lg p-6 my-4 text-xs">
+          {status ? (
             <div className="w-full text-left font-mono text-[11px]">
-              <p className="text-sky-400 font-bold">[SYSTEM]:</p>
-              <p className="pl-2 text-green-400">{geeStatus}</p>
+              <p className="text-sky-400 font-bold">[DE-AFRICA-STAC]:</p>
+              <p className="pl-2 text-green-400">{status}</p>
             </div>
           ) : (
-            <p className="text-slate-500">&gt;_ En attente de coordonnées cartographiques...</p>
+            <p className="text-slate-500">&gt;_ En attente des coordonnées de la carte...</p>
           )}
         </div>
 
@@ -140,10 +122,10 @@ function RemoteSensingContent() {
           <button
             type="button"
             disabled={!isCalculated}
-            onClick={handleDownload}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md font-semibold text-sm hover:bg-emerald-700 disabled:opacity-40 transition-colors"
+            onClick={() => window.open(downloadUrl, "_blank")}
+            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-md font-semibold text-sm hover:bg-emerald-700 disabled:opacity-40"
           >
-            Télécharger le fichier extrait (.TIF)
+            Télécharger le GeoTIFF personnalisé (.TIF)
           </button>
         </div>
       </div>
@@ -151,23 +133,17 @@ function RemoteSensingContent() {
   );
 }
 
-// 2. Le point d'entrée principal de la page emballe le tout dans un cadre de Suspense
 export default function RemoteSensingPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">
       <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-3xl font-bold text-slate-900">Analyse par Télédétection Ciblée</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Analyse Historique à la Demande</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Calcul d'indices spectraux environnementaux via l'API Google Earth Engine.
+          Extraction haut débit depuis le catalogue Digital Earth Africa sur votre zone personnalisée.
         </p>
       </div>
-
-      <Suspense fallback={
-        <div className="text-center py-12 text-sm text-slate-500 animate-pulse">
-          Chargement du module géospatial client...
-        </div>
-      }>
-        <RemoteSensingContent />
+      <Suspense fallback={<div>Chargement du catalogue...</div>}>
+        <DEAfricaContent />
       </Suspense>
     </div>
   );
