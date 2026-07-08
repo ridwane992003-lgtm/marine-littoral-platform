@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 // @ts-ignore
 import ee from "@google/earthengine";
 
-// Initialisation de Google Earth Engine de manière asynchrone
 const initializeGEE = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     const clientEmail = process.env.GEE_CLIENT_EMAIL;
-    // Nettoyage de la clé privée pour gérer correctement les sauts de ligne \n
     const privateKey = process.env.GEE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
     if (!clientEmail || !privateKey) {
-      return reject(new Error("Identifiants Google Earth Engine manquants dans le fichier .env.local"));
+      return reject(new Error("Identifiants manquants"));
     }
 
     ee.data.authenticateViaPrivateKey(
@@ -25,48 +23,46 @@ const initializeGEE = (): Promise<void> => {
 
 export async function POST(request: Request) {
   try {
-    const { satellite, indexType, dateRange } = await request.json();
+    const { satellite, indexType, dateRange, bbox } = await request.json();
 
-    // 1. Authentification auprès de Google
     await initializeGEE();
 
-    // 2. Sélection de la collection d'images selon le capteur choisi
-    let collectionId = "LANDSAT/LC08/C02/T1_TOA"; // Par défaut Landsat 8
-    if (satellite === "sentinel2") {
-      collectionId = "COPERNICUS/S2_SR_HARMONIZED"; // Sentinel-2
-    }
+    // 1. Découpage dynamique de la zone d'intérêt à partir de la BBox de la carte
+    // bbox contient la chaîne "ouest,sud,est,nord" -> On la convertit en tableau de nombres
+    const coordsArray = bbox.split(",").map(Number);
+    const customRegion = ee.Geometry.Rectangle(coordsArray);
 
-    // Filtrage spatial et temporel
+    let collectionId = satellite === "sentinel2" ? "COPERNICUS/S2_SR_HARMONIZED" : "LANDSAT/LC08/C02/T1_TOA";
+
+    // 2. Filtrage spatial pour ne prendre que les images qui touchent la zone de l'utilisateur
     let imageCollection = ee.ImageCollection(collectionId)
+      .filterBounds(customRegion)
       .filterDate(`${dateRange}-01-01`, `${dateRange}-12-31`)
       .sort("CLOUD_COVER");
 
-    const testImage = imageCollection.first();
+    const selectedImage = imageCollection.first();
 
-    // 3. Calcul de l'indice spectral matriciel
+    // 3. Calcul de l'indice
     let computedRaster;
     if (indexType === "ndvi") {
       const nirBand = satellite === "landsat8" ? "B5" : "B8";
-      computedRaster = testImage.normalizedDifference([nirBand, "B4"]);
+      computedRaster = selectedImage.normalizedDifference([nirBand, "B4"]);
     } else if (indexType === "ndwi") {
       const nirBand = satellite === "landsat8" ? "B5" : "B8";
-      computedRaster = testImage.normalizedDifference(["B3", nirBand]);
+      computedRaster = selectedImage.normalizedDifference(["B3", nirBand]);
     } else {
       const swirBand = satellite === "landsat8" ? "B6" : "B11";
-      computedRaster = testImage.normalizedDifference(["B3", swirBand]);
+      computedRaster = selectedImage.normalizedDifference(["B3", swirBand]);
     }
 
-    // 4. Génération de l'URL de téléchargement direct GeoTIFF par Google
+    // 4. Découpage final et génération de l'URL GeoTIFF
     const downloadUrl = await new Promise<string>((resolve, reject) => {
-      // Zone d'intérêt par défaut (Bounding Box autour du Lac Rose, Sénégal)
-      const defaultRegion = ee.Geometry.Rectangle([-17.6, 14.5, -17.2, 14.9]);
-
       computedRaster.getDownloadURL({
-        name: `${indexType}_${satellite}_export`,
-        scale: satellite === "landsat8" ? 30 : 10, // Résolution spatiale (30m ou 10m)
+        name: `${indexType}_custom_export`,
+        scale: satellite === "landsat8" ? 30 : 10,
         filePerBand: false,
         format: "GEO_TIFF",
-        region: defaultRegion
+        region: customRegion // Coupe l'image exactement selon les coordonnées envoyées
       }, (url: string, err: any) => {
         if (err) return reject(err);
         resolve(url);
@@ -76,7 +72,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, url: downloadUrl });
 
   } catch (error: any) {
-    console.error("Erreur GEE Pipeline:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
