@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { indexType, year, bbox } = await request.json();
+    // On récupère bien polygonCoords envoyé par le frontend
+    const { indexType, year, polygonCoords } = await request.json();
 
-    if (!bbox) {
-      return NextResponse.json({ success: false, error: "Coordonnées de zone (BBox) manquantes." }, { status: 400 });
+    if (!polygonCoords || !Array.isArray(polygonCoords) || polygonCoords.length === 0) {
+      return NextResponse.json({ success: false, error: "Les coordonnées du polygone sont invalides ou manquantes." }, { status: 400 });
     }
 
-    const bboxArray = bbox.split(",").map(Number);
+    // Calcul automatique de la Bounding Box [minLng, minLat, maxLng, maxLat] à partir du polygone
+    const lngs = polygonCoords.map((coord: number[]) => coord[0]);
+    const lats = polygonCoords.map((coord: number[]) => coord[1]);
+    const bboxArray = [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
+
     const selectedYear = parseInt(year);
     const collection = selectedYear < 2017 ? "ls8_c2_geometric_median" : "gm_s2_annual";
 
