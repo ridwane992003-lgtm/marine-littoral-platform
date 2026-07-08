@@ -11,32 +11,42 @@ function DEAfricaContent() {
   const [isCalculated, setIsCalculated] = useState(false);
   const [status, setStatus] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
-  const [coords, setCoords] = useState<string | null>(null);
+  const [polygonData, setPolygonData] = useState<any | null>(null);
 
+  // Récupération automatique du polygone dessiné sur la carte
   useEffect(() => {
-    const bbox = searchParams.get("bbox");
-    if (bbox) {
-      setCoords(bbox);
-      setStatus(`📍 Zone utilisateur chargée avec succès ! Coordonnées : [${bbox}]`);
+    const polyParam = searchParams.get("poly");
+    if (polyParam) {
+      try {
+        const decodedPoly = JSON.parse(decodeURIComponent(polyParam));
+        setPolygonData(decodedPoly);
+        setStatus(`📍 Zone personnalisée reçue avec succès ! (${decodedPoly.length - 1} sommets détectés)`);
+      } catch (err) {
+        setStatus("❌ Erreur lors du décodage des coordonnées du polygone.");
+      }
     }
   }, [searchParams]);
 
   const handleDEAfricaSearch = async () => {
-    if (!coords) {
-      setStatus("⚠️ Erreur : Veuillez d'abord sélectionner une zone sur la carte du Dashboard.");
+    if (!polygonData) {
+      setStatus("⚠️ Erreur : Veuillez d'abord dessiner une zone sur la carte du Dashboard.");
       return;
     }
 
     setIsLoading(true);
     setIsCalculated(false);
     setDownloadUrl("");
-    setStatus(`Extraction instantanée des données Digital Earth Africa pour l'année ${year}...`);
+    setStatus(`Extraction haut débit depuis Digital Earth Africa pour l'année ${year}...`);
 
     try {
       const response = await fetch("/api/deafrica", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ indexType, year, bbox: coords }),
+        body: JSON.stringify({ 
+          indexType, 
+          year, 
+          polygonCoords: polygonData 
+        }),
       });
 
       const data = await response.json();
@@ -44,12 +54,12 @@ function DEAfricaContent() {
       if (data.success && data.url) {
         setDownloadUrl(data.url);
         setIsCalculated(true);
-        setStatus(`✅ Image historique trouvée ! Le fichier GeoTIFF de votre zone est prêt pour le téléchargement.`);
+        setStatus(`✅ Image historique trouvée dans le cloud AWS ! Votre fichier GeoTIFF est prêt.`);
       } else {
-        setStatus(`❌ Limite : ${data.error || "Aucune image sur cette zone"}`);
+        setStatus(`❌ Problème : ${data.error || "Aucune archive trouvée"}`);
       }
     } catch (error) {
-      setStatus("❌ Erreur de communication avec le catalogue STAC.");
+      setStatus("❌ Erreur de communication avec le serveur d'analyse.");
     } finally {
       setIsLoading(false);
     }
@@ -57,16 +67,17 @@ function DEAfricaContent() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* Configuration */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 h-fit">
         <h2 className="text-lg font-semibold text-slate-800">Analyse Temporelle Personnalisée</h2>
 
-        {coords ? (
+        {polygonData ? (
           <div className="bg-green-50 p-3 rounded-md border border-green-200 text-[11px] text-green-800 font-mono break-all">
-            ✔️ Coordonnées de votre zone actives.
+            ✔️ Polygone actif : {polygonData.length - 1} points enregistrés.
           </div>
         ) : (
           <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-xs text-amber-800">
-            ⚠️ Aucune coordonnée reçue. Allez sur la carte du Dashboard pour capturer votre propre zone d'étude.
+            ⚠️ Aucun polygone reçu. Allez sur la carte pour tracer votre zone d'étude à la souris.
           </div>
         )}
 
@@ -74,37 +85,38 @@ function DEAfricaContent() {
           <label className="block text-sm font-medium text-slate-700 mb-1">Choisir l'année de l'archive</label>
           <select value={year} onChange={(e) => setYear(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-sky-700 bg-sky-50 font-bold">
             <option value="2025">2025 (Données récentes)</option>
-            <option value="2020">2020 (Il y a 6 ans)</option>
-            <option value="2015">2015 (Il y a 11 ans)</option>
-            <option value="2010">2010 (Il y a 16 ans)</option>
-            <option value="2000">2000 (Il y a 26 ans)</option>
+            <option value="2020">2020 (Moyenne période)</option>
+            <option value="2015">2015 (Entrée Sentinel-2 / Landsat 8)</option>
+            <option value="2010">2010 (Archives Landsat 7)</option>
+            <option value="2000">2000 (An 2000)</option>
             <option value="1990">1990 (Il y a 36 ans)</option>
-            <option value="1985">1985 (Archives initiales d'il y a 41 ans)</option>
+            <option value="1985">1985 (Données initiales de référence)</option>
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Indice produit</label>
           <select value={indexType} onChange={(e) => setIndexType(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-sky-700">
-            <option value="ndvi">NDVI (Couverture Végétale)</option>
+            <option value="ndvi">NDVI (Indice de Végétation / Algues)</option>
             <option value="visual">Image brute (Couleurs Réelles RGB)</option>
           </select>
         </div>
 
         <button 
           type="button" 
-          disabled={isLoading || !coords} 
+          disabled={isLoading || !polygonData} 
           onClick={handleDEAfricaSearch} 
           className="w-full bg-sky-700 text-white py-2 rounded-md font-semibold text-sm hover:bg-sky-800 transition-colors disabled:opacity-40"
         >
-          {isLoading ? "Recherche en cours..." : "Extraire les données de ma zone"}
+          {isLoading ? "Recherche en cours..." : "Extraire l'archive de mon polygone"}
         </button>
       </div>
 
+      {/* Console */}
       <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[450px]">
         <div>
           <h2 className="text-lg font-semibold text-slate-800 mb-2">Console Digital Earth Africa</h2>
-          <p className="text-xs text-slate-400">Accès direct aux infrastructures AWS Open Data Cube.</p>
+          <p className="text-xs text-slate-400">Interconnexion directe avec les serveurs STAC ouverts.</p>
         </div>
         
         <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 text-slate-200 font-mono rounded-lg p-6 my-4 text-xs">
@@ -114,7 +126,7 @@ function DEAfricaContent() {
               <p className="pl-2 text-green-400">{status}</p>
             </div>
           ) : (
-            <p className="text-slate-500">&gt;_ En attente des coordonnées de la carte...</p>
+            <p className="text-slate-500">&gt;_ En attente du tracé cartographique...</p>
           )}
         </div>
 
