@@ -52,9 +52,9 @@ export async function POST(request: Request) {
       downloadUrl = feature.assets.red?.href || Object.values(feature.assets)[0].href;
     }
 
-    // 5. CORRECTION : Convertit l'adresse s3:// en lien HTTPS public téléchargeable
-    if (downloadUrl.startsWith("s3://")) {
-      downloadUrl = downloadUrl.replace("s3://", "https://data.digitalearth.africa/");
+    // 5. CORRECTION : Convertit l'adresse s3:// vers le serveur HTTPS public réel d'AWS
+    if (downloadUrl.startsWith("s3://deafrica-services/")) {
+      downloadUrl = downloadUrl.replace("s3://deafrica-services/", "https://deafrica-services.s3.af-south-1.amazonaws.com/");
     }
 
     return NextResponse.json({ success: true, url: downloadUrl });
