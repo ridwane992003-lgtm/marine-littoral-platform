@@ -51,18 +51,18 @@ export async function POST(request: Request) {
       }),
     });
 
-    // 5. Vérification si le serveur distant renvoie bien du JSON (et non une erreur HTML)
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
+   // 5. CORRECTION : Lecture directe et sécurisée du JSON
+    let stacData;
+    try {
+      stacData = await response.json();
+    } catch (parseError) {
       const errorText = await response.text();
-      console.error("Réponse non-JSON reçue de DE Africa:", errorText);
+      console.error("Impossible de lire le JSON de DE Africa:", errorText);
       return NextResponse.json({ 
         success: false, 
-        error: `Le catalogue d'images a renvoyé un format invalide (Code ${response.status}). Modifiez l'année ou l'emplacement.` 
+        error: `Le catalogue a renvoyé un texte illisible (Code ${response.status}). Modifiez l'année ou l'emplacement.` 
       }, { status: response.status });
     }
-
-    const stacData = await response.json();
 
     if (!stacData.features || stacData.features.length === 0) {
       return NextResponse.json({ 
